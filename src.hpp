@@ -8,6 +8,9 @@ namespace sjtu {
 
     // FCFS method based CPU.
     class CPU_FCFS : public CPU {
+    private:
+        int current_task_idx = -1;  // Index of currently running task, -1 if none
+
     public:
         CPU_FCFS() : CPU() {}
 
@@ -15,19 +18,39 @@ namespace sjtu {
         pair<CPUState, uint> run() override {
             // If there are no tasks, CPU is idle
             if (tasks.empty()) {
+                current_task_idx = -1;
                 state = idle;
                 return make_pair(idle, 0);
             }
 
-            // Find the first task in the list (oldest task)
-            Task& current_task = tasks[0];
+            // In FCFS, we continue with the current task if it's still running
+            // Otherwise, we pick the first task in the list (oldest task)
+            if (current_task_idx == -1 || current_task_idx >= tasks.size() || 
+                (current_task_idx < tasks.size() && tasks[current_task_idx].time == 0)) {
+                // Find the first non-completed task
+                for (int i = 0; i < tasks.size(); i++) {
+                    if (tasks[i].time > 0) {
+                        current_task_idx = i;
+                        break;
+                    }
+                }
+            }
+            
+            // If no valid task found, CPU is idle
+            if (current_task_idx == -1 || current_task_idx >= tasks.size()) {
+                state = idle;
+                return make_pair(idle, 0);
+            }
+            
+            Task& current_task = tasks[current_task_idx];
             
             // Execute one time unit of the task
             current_task.time--;
             
             // If the task is completed, remove it from the list
             if (current_task.time == 0) {
-                tasks.erase(tasks.begin());
+                tasks.erase(tasks.begin() + current_task_idx);
+                current_task_idx = -1;  // Reset index since task is removed
             }
             
             // CPU is busy executing this task
@@ -38,6 +61,9 @@ namespace sjtu {
 
     // SRTF method based CPU.
     class CPU_SRTF : public CPU {
+    private:
+        int current_task_idx = -1;  // Index of currently running task, -1 if none
+
     public:
         CPU_SRTF() : CPU() {}
 
@@ -45,6 +71,7 @@ namespace sjtu {
         pair<CPUState, uint> run() override {
             // If there are no tasks, CPU is idle
             if (tasks.empty()) {
+                current_task_idx = -1;
                 state = idle;
                 return make_pair(idle, 0);
             }
@@ -61,6 +88,8 @@ namespace sjtu {
                 }
             }
             
+            // Update current task index
+            current_task_idx = best_idx;
             Task& current_task = tasks[best_idx];
             
             // Execute one time unit of the task
@@ -69,6 +98,14 @@ namespace sjtu {
             // If the task is completed, remove it from the list
             if (current_task.time == 0) {
                 tasks.erase(tasks.begin() + best_idx);
+                // Reset current task index if it was the one removed
+                if (current_task_idx == best_idx) {
+                    current_task_idx = -1;
+                }
+                // Adjust current task index if a task before it was removed
+                else if (current_task_idx > best_idx) {
+                    current_task_idx--;
+                }
             }
             
             // CPU is busy executing this task
@@ -79,6 +116,9 @@ namespace sjtu {
 
     // priority method based CPU.
     class CPU_PRIORITY : public CPU {
+    private:
+        int current_task_idx = -1;  // Index of currently running task, -1 if none
+
     public:
         CPU_PRIORITY() : CPU() {}
 
@@ -86,6 +126,7 @@ namespace sjtu {
         pair<CPUState, uint> run() override {
             // If there are no tasks, CPU is idle
             if (tasks.empty()) {
+                current_task_idx = -1;
                 state = idle;
                 return make_pair(idle, 0);
             }
@@ -102,6 +143,8 @@ namespace sjtu {
                 }
             }
             
+            // Update current task index
+            current_task_idx = best_idx;
             Task& current_task = tasks[best_idx];
             
             // Execute one time unit of the task
@@ -110,6 +153,14 @@ namespace sjtu {
             // If the task is completed, remove it from the list
             if (current_task.time == 0) {
                 tasks.erase(tasks.begin() + best_idx);
+                // Reset current task index if it was the one removed
+                if (current_task_idx == best_idx) {
+                    current_task_idx = -1;
+                }
+                // Adjust current task index if a task before it was removed
+                else if (current_task_idx > best_idx) {
+                    current_task_idx--;
+                }
             }
             
             // CPU is busy executing this task
